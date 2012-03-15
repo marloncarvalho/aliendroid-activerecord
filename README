@@ -1,0 +1,9 @@
+English version will be available soon!
+
+=Sobre=
+AlienDroid ActiveRecord é um projeto que começou para resolver um problema simples: não precisar de tanto SQL para criar 
+um projeto Android. :) Já existe um projeto ActiveAndroid, mas o autor cobra por ele. Então, resolvi criar o meu próprio
+e disponibilizar.
+
+=Uso=
+O uso do AlienDroid é bem simples. Crie suas classes estendendo de Model, como no exemplo abaixo:
