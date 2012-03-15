@@ -28,8 +28,8 @@ import android.content.ContentValues;
 import android.database.Cursor;
 
 /**
- * Seguindo padr‹o de projeto ActiveRecord, toda classe que Ž um 'Model' deve
- * herdar desta classe. J‡ ter‡ por padr‹o os mŽtodos triviais para persistir o
+ * Seguindo padrï¿½o de projeto ActiveRecord, toda classe que ï¿½ um 'Model' deve
+ * herdar desta classe. Jï¿½ terï¿½ por padrï¿½o os mï¿½todos triviais para persistir o
  * objeto, como insert() e update().
  * 
  * @author Marlon Silva Carvalho
@@ -67,6 +67,16 @@ abstract public class Model {
 		}
 		return model;
 	}
+
+	public static <T extends Model> Model findFirst(final Class<T> cls) {
+		List<T> list = Model.where(cls, "1=1");
+		Model model = null;
+		if (list.size() > 0) {
+			model = list.iterator().next();
+		}
+		return model;
+	}
+
 
 	/**
 	 * Save the model to the database.

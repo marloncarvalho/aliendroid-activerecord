@@ -186,7 +186,7 @@ public class ColumnMapper {
 		if (value == 1) {
 			result = true;
 		}
-		Reflection.setFieldValue(field.getName(), this, result);
+		Reflection.setFieldValue(field.getName(), object, result);
 	}
 
 	public Object getRawValue(final Field field, final Object object) {
