@@ -62,7 +62,7 @@ public class Dex {
 					Ln.e("AlienDroid", e.getMessage());
 				}
 
-				if ((discoveredClass == null) || (superClass == null) || (superClass.getName().indexOf("Model") != -1)) {
+				if ((discoveredClass == null) || (superClass == null) || (superClass.getName().indexOf("Model") == -1)) {
 					continue;
 				}
 				modelClasses.add(discoveredClass);

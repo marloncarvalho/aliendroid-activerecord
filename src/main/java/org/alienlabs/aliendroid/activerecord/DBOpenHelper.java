@@ -41,7 +41,7 @@ import com.google.inject.Singleton;
  */
 @Singleton
 public class DBOpenHelper extends SQLiteOpenHelper {
-	private static final String DATABASE_NAME = "BR2012.db";
+	private static final String DATABASE_NAME = "database.db";
 	private static final int VERSION = 1;
 
 	@Inject

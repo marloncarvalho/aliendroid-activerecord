@@ -28,21 +28,44 @@ import android.content.ContentValues;
 import android.database.Cursor;
 
 /**
- * Seguindo padrão de projeto ActiveRecord, toda classe que é um 'Model' deve herdar desta classe.
- * Já terá por padrão os métodos triviais para persistir o objeto, como insert() e update().
+ * Seguindo padrão de projeto ActiveRecord, toda classe que é um 'Model' deve
+ * herdar desta classe. Já terá por padrão os métodos triviais para persistir o
+ * objeto, como insert() e update().
  * 
  * @author Marlon Silva Carvalho
  * @since 1.0.0
  */
 abstract public class Model {
-	public Integer id;
+	public Integer _id;
 
 	public Model(final Integer id) {
-		this.id = id;
-		load();
+		this._id = id;
+		load(id);
 	}
 
 	public Model() {
+	}
+
+	public void load(final Integer id) {
+		String tableName = Reflection.getSimpleClassName(this);
+		DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
+		Cursor cursor = helper.getReadableDatabase().query(tableName,
+				Reflection.getNonStaticDeclaredFieldsNames(this.getClass()), "_id=?", new String[] { id.toString() },
+				null, null, null);
+
+		if (cursor.moveToFirst()) {
+			transform(cursor);
+		}
+		cursor.close();
+	}
+
+	public static <T extends Model> Model findFirst(final Class<T> cls, final String query, final String... params) {
+		List<T> list = Model.where(cls, query, params);
+		Model model = null;
+		if (list.size() > 0) {
+			model = list.iterator().next();
+		}
+		return model;
 	}
 
 	/**
@@ -59,8 +82,8 @@ abstract public class Model {
 
 		String tableName = Reflection.getSimpleClassName(this);
 		DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		if (id != null) {
-			helper.getWritableDatabase().update(tableName, values, "_id=?", new String[] { id.toString() });
+		if (_id != null) {
+			helper.getWritableDatabase().update(tableName, values, "_id=?", new String[] { _id.toString() });
 		} else {
 			helper.getWritableDatabase().insertOrThrow(tableName, null, values);
 		}
@@ -72,23 +95,7 @@ abstract public class Model {
 	public void delete() {
 		String tableName = Reflection.getSimpleClassName(this);
 		DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		helper.getWritableDatabase().delete(tableName, "_id=?", new String[] { id.toString() });
-	}
-
-	/**
-	 * Loads the object state from database.
-	 */
-	public void load() {
-		String tableName = Reflection.getSimpleClassName(this);
-		DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		Cursor cursor = helper.getReadableDatabase().query(tableName,
-				Reflection.getNonStaticDeclaredFieldsNames(this.getClass()), "_id=?", new String[] { id.toString() }, null,
-				null, null);
-
-		if (cursor.moveToFirst()) {
-			transform(cursor);
-		}
-		cursor.close();
+		helper.getWritableDatabase().delete(tableName, "_id=?", new String[] { _id.toString() });
 	}
 
 	protected void transform(final Cursor cursor) {
@@ -97,6 +104,7 @@ abstract public class Model {
 		for (Field field : fields) {
 			mapper.setValueToObject(cursor, field, this);
 		}
+		_id = cursor.getInt(cursor.getColumnIndex("_id"));
 	}
 
 	public static <T extends Model> List<T> findAll(final Class<T> cls) {
