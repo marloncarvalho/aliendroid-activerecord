@@ -34,14 +34,18 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 /**
- * Classe auxiliar que ajuda a abrir e manter uma conex�o com o banco de dados.
+ * Classe auxiliar que ajuda a abrir e manter uma conexão com o banco de dados.
  * 
  * @author Marlon Silva Carvalho
  * @since 1.0.0
  */
 @Singleton
 public class DBOpenHelper extends SQLiteOpenHelper {
+	
+	//TODO: especificar nome do banco de dados em arquivo de propriedades da aplicação
 	private static final String DATABASE_NAME = "database.db";
+	
+	//TODO: especificar versão do banco de dados em arquivo de propriedades da aplicação
 	private static final int VERSION = 1;
 
 	@Inject
