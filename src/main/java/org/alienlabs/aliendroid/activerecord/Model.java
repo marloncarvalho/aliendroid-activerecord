@@ -39,18 +39,41 @@ abstract public class Model {
 	
 	public Integer _id;
 
-	public Model(final Integer id) {
-		this._id = id;
-		load(id);
-	}
+	private boolean _new;
 
 	public Model() {
+		this._new = true;
 	}
 
+	public Model(final Integer id) {
+		this();
+		this._id = id;
+		//TODO: verificar esse comportamento
+		//load(id);
+	}
+
+	public Integer getId() {
+		return this._id;
+	}
+	
+	public boolean isNew() {
+		return this._new;
+	}
+	
+	private String getTableName() {
+		return Reflection.getSimpleClassName(this);
+	}
+	
+	private DBOpenHelper getHelper() {
+		return Beans.getBean(DBOpenHelper.class);
+	}
+	
+	private ColumnMapper getColumnMapper() {
+		return Beans.getBean(ColumnMapper.class);
+	}
+	
 	public void load(final Integer id) {
-		final String tableName = Reflection.getSimpleClassName(this);
-		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		final Cursor cursor = helper.getReadableDatabase().query(tableName,
+		final Cursor cursor = getHelper().getReadableDatabase().query(getTableName(),
 				Reflection.getNonStaticDeclaredFieldsNames(this.getClass()),
 				"_id=?", new String[] { id.toString() }, null, null, null);
 		if (cursor.moveToFirst()) {
@@ -70,7 +93,7 @@ abstract public class Model {
 	}
 
 	public static <T extends Model> Model findFirst(final Class<T> cls) {
-		final List<T> list = Model.where(cls, "1=1");
+		final List<T> list = Model.where(cls, null);
 		Model model = null;
 		if (list.size() > 0) {
 			model = list.iterator().next();
@@ -82,7 +105,7 @@ abstract public class Model {
 	 * Save the model to the database.
 	 */
 	public void save() {
-		final ColumnMapper mapper = Beans.getBean(ColumnMapper.class);
+		final ColumnMapper mapper = getColumnMapper();
 		final ContentValues values = new ContentValues();
 
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(getClass());
@@ -90,9 +113,9 @@ abstract public class Model {
 			values.put(field.getName(), mapper.getValueFromObject(field, this));
 		}
 
-		final String tableName = Reflection.getSimpleClassName(this);
-		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		if (_id != null) {
+		final String tableName = getTableName();
+		final DBOpenHelper helper = getHelper();
+		if (_id != null && !_new) {
 			helper.getWritableDatabase().update(tableName, values, "_id=?",
 					new String[] { _id.toString() });
 		} else {
@@ -104,23 +127,22 @@ abstract public class Model {
 	 * Delete the model from database.
 	 */
 	public void delete() {
-		final String tableName = Reflection.getSimpleClassName(this);
-		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		helper.getWritableDatabase().delete(tableName, "_id=?",
+		getHelper().getWritableDatabase().delete(getTableName(), "_id=?",
 				new String[] { _id.toString() });
 	}
 
 	protected void transform(final Cursor cursor) {
-		final ColumnMapper mapper = Beans.getBean(ColumnMapper.class);
+		final ColumnMapper mapper = getColumnMapper();
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(this.getClass());
 		for (Field field : fields) {
 			mapper.setValueToObject(cursor, field, this);
 		}
-		_id = cursor.getInt(cursor.getColumnIndex("_id"));
+		this._id = cursor.getInt(cursor.getColumnIndex("_id"));
+		this._new = false;
 	}
 
 	public static <T extends Model> List<T> findAll(final Class<T> cls) {
-		return where(cls, "1=1");
+		return where(cls, null);
 	}
 
 	public static <T extends Model> List<T> where(final Class<T> cls,
@@ -129,9 +151,16 @@ abstract public class Model {
 		final String tableName = Reflection.getSimpleClassName(cls);
 		final List<T> result = new ArrayList<T>();
 
+		final StringBuffer sql = new StringBuffer();
+		sql.append("SELECT * FROM ");
+		sql.append(tableName);
+		if (query != null) {
+			sql.append(" WHERE ");
+			sql.append(query);
+		}
+		
 		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		final Cursor cursor = helper.getReadableDatabase().rawQuery(
-				"select * from " + tableName + " where " + query, params);
+		final Cursor cursor = helper.getReadableDatabase().rawQuery(sql.toString(), params);
 		while (cursor.moveToNext()) {
 			T model = Reflection.instantiate(cls);
 			model.transform(cursor);
@@ -152,16 +181,16 @@ abstract public class Model {
 		final String tableName = Reflection.getSimpleClassName(cls);
 		int result = 0;
 
-		StringBuffer sb = new StringBuffer();
-		sb.append("select count(1) from ");
-		sb.append(tableName);
+		final StringBuffer sql = new StringBuffer();
+		sql.append("SELECT count(1) FROM ");
+		sql.append(tableName);
 		if (query != null) {
-			sb.append(" where ");
-			sb.append(query);
+			sql.append(" WHERE ");
+			sql.append(query);
 		}
 		
 		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
-		final Cursor cursor = helper.getReadableDatabase().rawQuery(sb.toString(), params);
+		final Cursor cursor = helper.getReadableDatabase().rawQuery(sql.toString(), params);
 		if (cursor.moveToNext()) {
 			result = cursor.getInt(0);
 		}
@@ -174,19 +203,13 @@ abstract public class Model {
 		final String tableName = Reflection.getSimpleClassName(cls);
 		final StringBuilder sql = new StringBuilder();
 		
-		sql.append("CREATE TABLE  ");
+		sql.append("CREATE TABLE ");
 		sql.append(tableName);
-		sql.append(" (");
-		sql.append(" _id INTEGER PRIMARY KEY");
+		sql.append(" (_id INTEGER PRIMARY KEY");
 		
-		boolean first = true;
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(cls);
-		
 		for (Field field : fields) {
-			if (first) {
-				sql.append(", ");
-				first = false;
-			}
+			sql.append(", ");
 			sql.append(field.getName());
 			sql.append(" ");
 			sql.append(getType(field));
@@ -197,18 +220,24 @@ abstract public class Model {
 	}
 
 	private static String getType(final Field field) {
-		final Class<?> cls = field.getType();
-		
+		final String cls = field.getType().getSimpleName().toLowerCase();
+
 		String type = null;
-		if (cls.getSimpleName().toLowerCase().equals("integer")
-			|| cls.getSimpleName().toLowerCase().equals("long")
-			|| cls.getSimpleName().toLowerCase().equals("short")
-			|| cls.getSimpleName().toLowerCase().equals("boolean")) {
+		if (cls.equals("string")
+			|| cls.equals("char")
+			|| cls.equals("character")) {
+			type = "TEXT";
+		} else if (cls.equals("integer")
+			|| cls.equals("int")
+			|| cls.equals("long")
+			|| cls.equals("short")
+			|| cls.equals("byte")
+			|| cls.equals("boolean")) {
 			type = "INTEGER";
-		} else if (cls.getSimpleName().toLowerCase().equals("double")
-				|| cls.getSimpleName().toLowerCase().equals("float")) {
+		} else if (cls.equals("double")
+				|| cls.equals("float")) {
 			type = "REAL";
-		} else if (cls.getSimpleName().toLowerCase().equals("date")) {
+		} else if (cls.equals("date")) {
 			type = "DATE";
 		} else {
 			type = "TEXT";

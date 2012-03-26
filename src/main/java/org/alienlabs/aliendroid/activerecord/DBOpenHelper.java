@@ -43,7 +43,7 @@ import com.google.inject.Singleton;
 public class DBOpenHelper extends SQLiteOpenHelper {
 	
 	//TODO: especificar nome do banco de dados em arquivo de propriedades da aplicação
-	private static final String DATABASE_NAME = "database.db";
+	private static final String DATABASE_NAME = "database.sqlite";
 	
 	//TODO: especificar versão do banco de dados em arquivo de propriedades da aplicação
 	private static final int VERSION = 1;
@@ -53,6 +53,12 @@ public class DBOpenHelper extends SQLiteOpenHelper {
 
 	public DBOpenHelper() {
 		super(Beans.getBean(Context.class), DATABASE_NAME, null, VERSION);
+	}
+	
+	@Override
+	public void onOpen(SQLiteDatabase db) {
+		Ln.d("Opening database named [" + db.getPath() + "]");
+		super.onOpen(db);
 	}
 
 	@Override
