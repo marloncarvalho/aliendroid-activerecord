@@ -39,27 +39,16 @@ abstract public class Model {
 	
 	public Integer _id;
 
-	private boolean _new;
-
 	public Model() {
-		this._new = true;
+		super();
 	}
 
 	public Model(final Integer id) {
-		this();
 		this._id = id;
 		//TODO: verificar esse comportamento
 		//load(id);
 	}
 
-	public Integer getId() {
-		return this._id;
-	}
-	
-	public boolean isNew() {
-		return this._new;
-	}
-	
 	private String getTableName() {
 		return Reflection.getSimpleClassName(this);
 	}
@@ -115,7 +104,7 @@ abstract public class Model {
 
 		final String tableName = getTableName();
 		final DBOpenHelper helper = getHelper();
-		if (_id != null && !_new) {
+		if (_id != null) {
 			helper.getWritableDatabase().update(tableName, values, "_id=?",
 					new String[] { _id.toString() });
 		} else {
@@ -138,7 +127,6 @@ abstract public class Model {
 			mapper.setValueToObject(cursor, field, this);
 		}
 		this._id = cursor.getInt(cursor.getColumnIndex("_id"));
-		this._new = false;
 	}
 
 	public static <T extends Model> List<T> findAll(final Class<T> cls) {
