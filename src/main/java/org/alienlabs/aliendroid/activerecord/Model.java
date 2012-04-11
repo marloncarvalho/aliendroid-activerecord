@@ -120,15 +120,31 @@ abstract public class Model {
 				new String[] { _id.toString() });
 	}
 
+	/**
+	 * Assigns the instantiated class with field values retrieved from the cursor.
+	 * 
+	 * @param cursor
+	 */
 	protected void transform(final Cursor cursor) {
 		final ColumnMapper mapper = getColumnMapper();
+		
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(this.getClass());
 		for (Field field : fields) {
 			mapper.setValueToObject(cursor, field, this);
 		}
-		this._id = cursor.getInt(cursor.getColumnIndex("_id"));
+		
+		final int posId = cursor.getColumnIndex("_id");
+		if (posId != -1) {
+			this._id = cursor.getInt(posId);
+		}
 	}
 
+	/**
+	 * Returns all occurrencies of the given class type.
+	 * 
+	 * @param cls
+	 * @return
+	 */
 	public static <T extends Model> List<T> findAll(final Class<T> cls) {
 		return where(cls, null);
 	}
@@ -159,6 +175,12 @@ abstract public class Model {
 		return result;
 	}
 
+	/**
+	 * Returns the amount of records written in the table.
+	 * 
+	 * @param cls
+	 * @return
+	 */
 	public static <T extends Model> int count(final Class<T> cls) {
 		return count(cls, null);
 	}
@@ -187,7 +209,14 @@ abstract public class Model {
 		return result;
 	}
 
+	/**
+	 * Generates the DDL table creation statement corresponding to the given class type.
+	 * 
+	 * @param cls	the class
+	 * @return	the statement
+	 */
 	public static String getSQLCreateTable(final Class<?> cls) {
+		
 		final String tableName = Reflection.getSimpleClassName(cls);
 		final StringBuilder sql = new StringBuilder();
 		
@@ -207,6 +236,12 @@ abstract public class Model {
 		return sql.toString();
 	}
 
+	/**
+	 * Returns the SQL data type associated with the given Java field type.
+	 * 
+	 * @param field
+	 * @return	a String
+	 */
 	private static String getType(final Field field) {
 		final String cls = field.getType().getSimpleName().toLowerCase();
 		
@@ -234,6 +269,30 @@ abstract public class Model {
 		}
 		
 		return type;
+	}
+
+	/**
+	 * Issues a given native SQL query, returning a list of a given class type instances. 
+	 * 
+	 * @param cls	the class type
+	 * @param sql	the complete SQL statement
+	 * @param params	optional parameters
+	 * @return	a list of class type
+	 */
+	public static <T extends Model> List<T> createSQLQuery(final Class<T> cls, final String sql, final String... params) {
+
+		final List<T> result = new ArrayList<T>();
+
+		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
+		final Cursor cursor = helper.getReadableDatabase().rawQuery(sql, params);
+		while (cursor.moveToNext()) {
+			T model = Reflection.instantiate(cls);
+			model.transform(cursor);
+			result.add(model);
+		}
+
+		cursor.close();
+		return result;
 	}
 
 }
