@@ -30,8 +30,7 @@ public class ColumnMapper {
 	private static final String DATE_FORMAT = "MM/dd/yyyy HH:mm:ss";
 
 	public void setValueToObject(final Cursor cursor, final Field field, final Object object) {
-		int index = cursor.getColumnIndex(field.getName());
-
+		final int index = cursor.getColumnIndex(field.getName());
 		if (field.getType().equals(Boolean.class) || field.getType().equals(boolean.class)) {
 			setBooleanValue(cursor, index, field, object);
 		} else if (field.getType().equals(Date.class)) {
@@ -48,12 +47,13 @@ public class ColumnMapper {
 			setDoubleValue(cursor, index, field, object);
 		} else if (field.getType().equals(String.class)) {
 			setStringValue(cursor, index, field, object);
+		} else if (field.getType().isEnum()) {
+			setEnumValue(cursor, index, field, object);
 		}
 	}
 
 	public String getValueFromObject(final Field field, final Object object) {
 		String resValue = null;
-
 		if (field.getType().equals(Boolean.class) || field.getType().equals(boolean.class)) {
 			resValue = getBooleanValue(field, object);
 		} else if (field.getType().equals(Date.class)) {
@@ -70,6 +70,8 @@ public class ColumnMapper {
 			resValue = getDoubleValue(field, object);
 		} else if (field.getType().equals(String.class)) {
 			resValue = getStringValue(field, object);
+		} else if (field.getType().isEnum()) {
+			resValue = getEnumValue(field, object);
 		}
 		return resValue;
 	}
@@ -125,22 +127,29 @@ public class ColumnMapper {
 	private String getDateValue(final Field field, final Object object) {
 		String resValue = null;
 		Object value = getRawValue(field, object);
-
 		if (value != null && value instanceof Date) {
 			resValue = DateUtils.format((Date) value, DATE_FORMAT);
 		}
-
 		return resValue;
 	}
 
 	private String getBooleanValue(final Field field, final Object object) {
 		String resValue = null;
 		Object value = getRawValue(field, object);
-
 		if (value != null && value instanceof Boolean) {
 			resValue = ((Boolean) value).booleanValue() ? "1" : "0";
 		}
+		return resValue;
+	}
 
+	@SuppressWarnings("rawtypes")
+	private String getEnumValue(final Field field, final Object object) {
+		String resValue = null;
+		Object value = getRawValue(field, object);
+		if (value != null) {
+			int valEnum = ((Enum) value).ordinal();
+			resValue = String.valueOf(valEnum);
+		}
 		return resValue;
 	}
 
@@ -182,16 +191,24 @@ public class ColumnMapper {
 
 	private void setBooleanValue(final Cursor cursor, final int index, final Field field, final Object object) {
 		int value = cursor.getInt(index);
-		boolean result = false;
-		if (value == 1) {
-			result = true;
-		}
+		boolean result = (value == 1);
 		Reflection.setFieldValue(field.getName(), object, result);
 	}
 
-	public Object getRawValue(final Field field, final Object object) {
-		Object result;
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private void setEnumValue(final Cursor cursor, final int index, final Field field, final Object object) {
+		int value = cursor.getInt(index);
+		Object result = valueOf((Class<Enum>) field.getType(), value);
+		Reflection.setFieldValue(field.getName(), object, result);
+	}
 
+	private static <E extends Enum<E>> E valueOf(final Class<E> type, final int ordinal) {
+		final E[] enums = type.getEnumConstants();
+		return (ordinal >= 0 && ordinal < enums.length ? enums[ordinal] : null);
+	}
+
+	public Object getRawValue(final Field field, final Object object) {
+		final Object result;
 		try {
 			boolean accessible = field.isAccessible();
 			field.setAccessible(true);
@@ -202,7 +219,7 @@ public class ColumnMapper {
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
-
 		return result;
 	}
+	
 }
