@@ -71,19 +71,19 @@ abstract public class Model {
 		cursor.close();
 	}
 
-	public static <T extends Model> Model findFirst(final Class<T> cls,
+	public static <T extends Model> T findFirst(final Class<T> cls,
 			final String query, final String... params) {
 		final List<T> list = Model.where(cls, query, params);
-		Model model = null;
+		T model = null;
 		if (list.size() > 0) {
 			model = list.iterator().next();
 		}
 		return model;
 	}
 
-	public static <T extends Model> Model findFirst(final Class<T> cls) {
+	public static <T extends Model> T findFirst(final Class<T> cls) {
 		final List<T> list = Model.where(cls, null);
-		Model model = null;
+		T model = null;
 		if (list.size() > 0) {
 			model = list.iterator().next();
 		}
