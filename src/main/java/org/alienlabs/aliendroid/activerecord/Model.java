@@ -209,7 +209,7 @@ abstract public class Model {
 
 	private static String getType(final Field field) {
 		final String cls = field.getType().getSimpleName().toLowerCase();
-
+		
 		String type = null;
 		if (cls.equals("string")
 			|| cls.equals("char")
@@ -227,6 +227,8 @@ abstract public class Model {
 			type = "REAL";
 		} else if (cls.equals("date")) {
 			type = "DATE";
+		} else if (field.getType().isEnum()) {
+			type = "INTEGER";
 		} else {
 			type = "TEXT";
 		}
