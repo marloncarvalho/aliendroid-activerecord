@@ -140,6 +140,15 @@ abstract public class Model {
 	}
 
 	/**
+	 * Returns true wether the given object was already persisted.
+	 * 
+	 * @return	boolean
+	 */
+	public boolean isSaved() {
+		return this._id != null;
+	}
+	
+	/**
 	 * Returns all occurrencies of the given class type.
 	 * 
 	 * @param cls
