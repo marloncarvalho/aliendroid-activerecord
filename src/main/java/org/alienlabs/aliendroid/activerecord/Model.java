@@ -215,7 +215,7 @@ abstract public class Model {
 		if (cursor.moveToNext()) {
 			result = cursor.getInt(0);
 		}
-
+		
 		cursor.close();
 		return result;
 	}
@@ -343,4 +343,19 @@ abstract public class Model {
 		return result;
 	}
 
+	/**
+	 * Executes the given native SQL statement.
+	 * 
+	 * @param sql	the SQL statement
+	 * @param params	optional arguments
+	 */
+	public static void executeSQL(final String sql, final Object ... params) {
+		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
+		if (params != null && params.length > 0) {
+			helper.getReadableDatabase().execSQL(sql, params);
+		} else {
+			helper.getReadableDatabase().execSQL(sql);
+		}
+	}
+	
 }
