@@ -19,7 +19,9 @@ package org.alienlabs.aliendroid.activerecord;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.alienlabs.aliendroid.util.Beans;
 import org.alienlabs.aliendroid.util.Reflection;
@@ -71,19 +73,18 @@ abstract public class Model {
 		cursor.close();
 	}
 
-	public static <T extends Model> T findFirst(final Class<T> cls,
-			final String query, final String... params) {
+	public static <T extends Model> Model findFirst(final Class<T> cls, final String query, final String... params) {
 		final List<T> list = Model.where(cls, query, params);
-		T model = null;
+		Model model = null;
 		if (list.size() > 0) {
 			model = list.iterator().next();
 		}
 		return model;
 	}
 
-	public static <T extends Model> T findFirst(final Class<T> cls) {
+	public static <T extends Model> Model findFirst(final Class<T> cls) {
 		final List<T> list = Model.where(cls, null);
-		T model = null;
+		Model model = null;
 		if (list.size() > 0) {
 			model = list.iterator().next();
 		}
@@ -99,7 +100,9 @@ abstract public class Model {
 
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(getClass());
 		for (Field field : fields) {
-			values.put(field.getName(), mapper.getValueFromObject(field, this));
+			if (!isMultiValued(field)) {
+				values.put(field.getName(), mapper.getValueFromObject(field, this));
+			}
 		}
 
 		final String tableName = getTableName();
@@ -116,8 +119,7 @@ abstract public class Model {
 	 * Delete the model from database.
 	 */
 	public void delete() {
-		getHelper().getWritableDatabase().delete(getTableName(), "_id=?",
-				new String[] { _id.toString() });
+		getHelper().getWritableDatabase().delete(getTableName(), "_id=?", new String[] { _id.toString() });
 	}
 
 	/**
@@ -130,7 +132,9 @@ abstract public class Model {
 		
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(this.getClass());
 		for (Field field : fields) {
-			mapper.setValueToObject(cursor, field, this);
+			if (!isMultiValued(field)) {
+				mapper.setValueToObject(cursor, field, this);
+			}
 		}
 		
 		final int posId = cursor.getColumnIndex("_id");
@@ -139,6 +143,15 @@ abstract public class Model {
 		}
 	}
 
+	/**
+	 * Returns true whether the given object was already persisted.
+	 * 
+	 * @return	boolean
+	 */
+	public boolean isSaved() {
+		return this._id != null;
+	}
+	
 	/**
 	 * Returns all occurrencies of the given class type.
 	 * 
@@ -149,8 +162,7 @@ abstract public class Model {
 		return where(cls, null);
 	}
 
-	public static <T extends Model> List<T> where(final Class<T> cls,
-			final String query, final String... params) {
+	public static <T extends Model> List<T> where(final Class<T> cls, final String query, final String... params) {
 		
 		final String tableName = Reflection.getSimpleClassName(cls);
 		final List<T> result = new ArrayList<T>();
@@ -185,8 +197,7 @@ abstract public class Model {
 		return count(cls, null);
 	}
 
-	public static <T extends Model> int count(final Class<T> cls,
-			final String query, final String... params) {
+	public static <T extends Model> int count(final Class<T> cls, final String query, final String... params) {
 		
 		final String tableName = Reflection.getSimpleClassName(cls);
 		int result = 0;
@@ -204,7 +215,7 @@ abstract public class Model {
 		if (cursor.moveToNext()) {
 			result = cursor.getInt(0);
 		}
-
+		
 		cursor.close();
 		return result;
 	}
@@ -226,6 +237,9 @@ abstract public class Model {
 		
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(cls);
 		for (Field field : fields) {
+			if (isMultiValued(field)) {
+				continue;
+			}
 			sql.append(", ");
 			sql.append(field.getName());
 			sql.append(" ");
@@ -272,6 +286,40 @@ abstract public class Model {
 	}
 
 	/**
+	 * Returns true whether the given field type is a core collection interface.
+	 * 
+	 * @param field	the field
+	 * @return	a boolean
+	 */
+	private static boolean isCollection(final Field field) {
+		if (Collection.class.isAssignableFrom(field.getType()))
+			return true;
+		if (Map.class.isAssignableFrom(field.getType()))
+			return true;
+		return false;
+	}
+	
+	/**
+	 * Returns true whether the given field type is an array.
+	 * 
+	 * @param field	the field
+	 * @return	a boolean
+	 */
+	private static boolean isArray(final Field field) {
+		return field.getType().isArray();
+	}
+
+	/**
+	 * Returns true whether the given field type is multi-valued.
+	 * 
+	 * @param field	the field
+	 * @return	a boolean
+	 */
+	private static boolean isMultiValued(final Field field) {
+		return isCollection(field) || isArray(field);
+	}
+	
+	/**
 	 * Issues a given native SQL query, returning a list of a given class type instances. 
 	 * 
 	 * @param cls	the class type
@@ -295,4 +343,19 @@ abstract public class Model {
 		return result;
 	}
 
+	/**
+	 * Executes the given native SQL statement.
+	 * 
+	 * @param sql	the SQL statement
+	 * @param params	optional arguments
+	 */
+	public static void executeSQL(final String sql, final Object ... params) {
+		final DBOpenHelper helper = Beans.getBean(DBOpenHelper.class);
+		if (params != null && params.length > 0) {
+			helper.getReadableDatabase().execSQL(sql, params);
+		} else {
+			helper.getReadableDatabase().execSQL(sql);
+		}
+	}
+	
 }

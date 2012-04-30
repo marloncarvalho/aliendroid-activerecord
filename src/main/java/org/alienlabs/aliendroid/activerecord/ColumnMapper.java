@@ -27,7 +27,9 @@ import android.database.Cursor;
 
 public class ColumnMapper {
 
-	private static final String DATE_FORMAT = "MM/dd/yyyy HH:mm:ss";
+	// http://www.sqlite.org/datatype3.html#datetime
+	// http://en.wikipedia.org/wiki/ISO_8601
+	private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
 	public void setValueToObject(final Cursor cursor, final Field field, final Object object) {
 		final int index = cursor.getColumnIndex(field.getName());
