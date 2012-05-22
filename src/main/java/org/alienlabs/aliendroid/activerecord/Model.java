@@ -18,6 +18,7 @@
 package org.alienlabs.aliendroid.activerecord;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -100,7 +101,7 @@ abstract public class Model {
 
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(getClass());
 		for (Field field : fields) {
-			if (!isMultiValued(field)) {
+			if (!isMultiValued(field) && !isTransient(field)) {
 				values.put(field.getName(), mapper.getValueFromObject(field, this));
 			}
 		}
@@ -108,10 +109,12 @@ abstract public class Model {
 		final String tableName = getTableName();
 		final DBOpenHelper helper = getHelper();
 		if (_id != null) {
-			helper.getWritableDatabase().update(tableName, values, "_id=?",
-					new String[] { _id.toString() });
+			helper.getWritableDatabase().update(tableName, values, "_id=?", new String[] { _id.toString() });
 		} else {
-			helper.getWritableDatabase().insertOrThrow(tableName, null, values);
+			final long newId = helper.getWritableDatabase().insertOrThrow(tableName, null, values);
+			if (newId != -1) {
+				this._id = (int) newId;
+			}
 		}
 	}
 
@@ -132,7 +135,7 @@ abstract public class Model {
 		
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(this.getClass());
 		for (Field field : fields) {
-			if (!isMultiValued(field)) {
+			if (!isMultiValued(field) && !isTransient(field)) {
 				mapper.setValueToObject(cursor, field, this);
 			}
 		}
@@ -237,7 +240,7 @@ abstract public class Model {
 		
 		final Field[] fields = Reflection.getNonStaticDeclaredFields(cls);
 		for (Field field : fields) {
-			if (isMultiValued(field)) {
+			if (isMultiValued(field) || isTransient(field)) {
 				continue;
 			}
 			sql.append(", ");
@@ -317,6 +320,16 @@ abstract public class Model {
 	 */
 	private static boolean isMultiValued(final Field field) {
 		return isCollection(field) || isArray(field);
+	}
+	
+	/**
+	 * Returns true whether the given field is signed as transient.
+	 * 
+	 * @param field	the field
+	 * @return	a boolean
+	 */
+	private static boolean isTransient(final Field field) {
+		return Modifier.isTransient(field.getModifiers());
 	}
 	
 	/**

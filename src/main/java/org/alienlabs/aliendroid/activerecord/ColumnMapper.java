@@ -31,53 +31,67 @@ public class ColumnMapper {
 	// http://en.wikipedia.org/wiki/ISO_8601
 	private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+	/**
+	 * @param cursor
+	 * @param field
+	 * @param object
+	 */
 	public void setValueToObject(final Cursor cursor, final Field field, final Object object) {
 		final int index = cursor.getColumnIndex(field.getName());
-		if (field.getType().equals(Boolean.class) || field.getType().equals(boolean.class)) {
+		final Class<?> type = field.getType();
+		if (type.equals(Boolean.class) || type.equals(boolean.class)) {
 			setBooleanValue(cursor, index, field, object);
-		} else if (field.getType().equals(Date.class)) {
+		} else if (type.equals(Date.class)) {
 			setDateValue(cursor, index, field, object);
-		} else if (field.getType().equals(Integer.class) || field.getType().equals(int.class)) {
+		} else if (type.equals(Integer.class) || type.equals(int.class)) {
 			setIntegerValue(cursor, index, field, object);
-		} else if (field.getType().equals(Long.class) || field.getType().equals(long.class)) {
+		} else if (type.equals(Long.class) || type.equals(long.class)) {
 			setLongValue(cursor, index, field, object);
-		} else if (field.getType().equals(Float.class) || field.getType().equals(float.class)) {
+		} else if (type.equals(Float.class) || type.equals(float.class)) {
 			setFloatValue(cursor, index, field, object);
-		} else if (field.getType().equals(Short.class) || field.getType().equals(short.class)) {
+		} else if (type.equals(Short.class) || type.equals(short.class)) {
 			setShortValue(cursor, index, field, object);
-		} else if (field.getType().equals(Double.class) || field.getType().equals(double.class)) {
+		} else if (type.equals(Double.class) || type.equals(double.class)) {
 			setDoubleValue(cursor, index, field, object);
-		} else if (field.getType().equals(String.class)) {
+		} else if (type.equals(String.class)) {
 			setStringValue(cursor, index, field, object);
-		} else if (field.getType().isEnum()) {
+		} else if (type.isEnum()) {
 			setEnumValue(cursor, index, field, object);
 		}
 	}
 
+	/**
+	 * @param field
+	 * @param object
+	 * @return
+	 */
 	public String getValueFromObject(final Field field, final Object object) {
 		String resValue = null;
-		if (field.getType().equals(Boolean.class) || field.getType().equals(boolean.class)) {
+		final Class<?> type = field.getType();
+		if (type.equals(Boolean.class) || type.equals(boolean.class)) {
 			resValue = getBooleanValue(field, object);
-		} else if (field.getType().equals(Date.class)) {
+		} else if (type.equals(Date.class)) {
 			resValue = getDateValue(field, object);
-		} else if (field.getType().equals(Integer.class) || field.getType().equals(int.class)) {
+		} else if (type.equals(Integer.class) || type.equals(int.class)) {
 			resValue = getIntegerValue(field, object);
-		} else if (field.getType().equals(Long.class) || field.getType().equals(long.class)) {
+		} else if (type.equals(Long.class) || type.equals(long.class)) {
 			resValue = getLongValue(field, object);
-		} else if (field.getType().equals(Float.class) || field.getType().equals(float.class)) {
+		} else if (type.equals(Float.class) || type.equals(float.class)) {
 			resValue = getFloatValue(field, object);
-		} else if (field.getType().equals(Short.class) || field.getType().equals(short.class)) {
+		} else if (type.equals(Short.class) || type.equals(short.class)) {
 			resValue = getShortValue(field, object);
-		} else if (field.getType().equals(Double.class) || field.getType().equals(double.class)) {
+		} else if (type.equals(Double.class) || type.equals(double.class)) {
 			resValue = getDoubleValue(field, object);
-		} else if (field.getType().equals(String.class)) {
+		} else if (type.equals(String.class)) {
 			resValue = getStringValue(field, object);
-		} else if (field.getType().isEnum()) {
+		} else if (type.isEnum()) {
 			resValue = getEnumValue(field, object);
 		}
 		return resValue;
 	}
 
+	// getters
+	
 	private String getStringValue(final Field field, final Object object) {
 		Object result = getRawValue(field, object);
 		if (result == null) {
@@ -155,52 +169,54 @@ public class ColumnMapper {
 		return resValue;
 	}
 
+	// setters
+	
 	private void setStringValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		String value = cursor.getString(index);
+		final String value = cursor.getString(index);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setDoubleValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		double value = cursor.getDouble(index);
+		final Double value = (!cursor.isNull(index) ? cursor.getDouble(index) : null);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setShortValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		short value = cursor.getShort(index);
+		final Short value = (!cursor.isNull(index) ? cursor.getShort(index) : null);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setFloatValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		float value = cursor.getFloat(index);
+		final Float value = (!cursor.isNull(index) ? cursor.getFloat(index) : null);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setLongValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		long value = cursor.getLong(index);
+		final Long value = (!cursor.isNull(index) ? cursor.getLong(index) : null);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setIntegerValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		int value = cursor.getInt(index);
+		final Integer value = (!cursor.isNull(index) ? cursor.getInt(index) : null);
 		Reflection.setFieldValue(field.getName(), object, value);
 	}
 
 	private void setDateValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		String value = cursor.getString(index);
-		Date result = DateUtils.format(value, DATE_FORMAT);
+		final String value = cursor.getString(index);
+		final Date result = (!cursor.isNull(index) && value != null ? DateUtils.format(value, DATE_FORMAT) : null);
 		Reflection.setFieldValue(field.getName(), object, result);
 	}
 
 	private void setBooleanValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		int value = cursor.getInt(index);
-		boolean result = (value == 1);
+		final int value = (!cursor.isNull(index) ? cursor.getInt(index) : 0);
+		final boolean result = (value == 1);
 		Reflection.setFieldValue(field.getName(), object, result);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void setEnumValue(final Cursor cursor, final int index, final Field field, final Object object) {
-		int value = cursor.getInt(index);
-		Object result = valueOf((Class<Enum>) field.getType(), value);
+		final int value = cursor.getInt(index);
+		final Object result = (!cursor.isNull(index) ? valueOf((Class<Enum>) field.getType(), value) : null);
 		Reflection.setFieldValue(field.getName(), object, result);
 	}
 
@@ -209,6 +225,11 @@ public class ColumnMapper {
 		return (ordinal >= 0 && ordinal < enums.length ? enums[ordinal] : null);
 	}
 
+	/**
+	 * @param field
+	 * @param object
+	 * @return
+	 */
 	public Object getRawValue(final Field field, final Object object) {
 		final Object result;
 		try {
