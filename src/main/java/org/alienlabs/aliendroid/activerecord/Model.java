@@ -109,10 +109,12 @@ abstract public class Model {
 		final String tableName = getTableName();
 		final DBOpenHelper helper = getHelper();
 		if (_id != null) {
-			helper.getWritableDatabase().update(tableName, values, "_id=?",
-					new String[] { _id.toString() });
+			helper.getWritableDatabase().update(tableName, values, "_id=?", new String[] { _id.toString() });
 		} else {
-			helper.getWritableDatabase().insertOrThrow(tableName, null, values);
+			final long newId = helper.getWritableDatabase().insertOrThrow(tableName, null, values);
+			if (newId != -1) {
+				this._id = (int) newId;
+			}
 		}
 	}
 
